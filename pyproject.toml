@@ -1,8 +1,7 @@
 [tool.poetry]
 name = "aq-suite"
 version = "0.1.0"
-description = "This program monitors air quality as recorded by the SDS001 particulate matter
-module and the MH-Z19 CO2 module, both connected to a Raspberry Pi."
+description = "This program monitors air quality as recorded by the SDS001 particulate matter module and the MH-Z19 CO2 module, both connected to a Raspberry Pi."
 authors = ["Arthur Elmes <arthur.elmes@gmail.com>"]
 license = "MIT"
 readme = "README.md"
