@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "aq-monitor"
+version = "0.1.0"
+description = "This program monitors air quality as recorded by an SDS001 module connected to a Raspberry Pi."
+authors = ["Arthur Elmes <arthur.elmes@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+py-sds011 = {git = "https://github.com/ikalchev/py-sds011.git"}
+pandas = "^2.2.2"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.0"
+black = "^24.4.2"
+isort = "^5.13.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
