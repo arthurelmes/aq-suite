@@ -81,16 +81,21 @@ if __name__ == "__main__":
     formatted_time = datetime.strftime(datetime.now(), '%Y%m%dT%H%M%S')
     co2_log_file_path = op.join(args["log_dir_path"], f"co2-log-{formatted_time}.txt")
     pm_log_file_path = op.join(args["log_dir_path"], f"pm-log-{formatted_time}.txt")
+    half_sleep_secs = int(args["ping_interval"]/2)
+
     
     logger.info("Running with the following configuration:\n%s", pretty_args)
     while datetime.now() < args["end_datetime"]:
         if args["start_datetime"] <= datetime.now():
             co2_datum = m19.read()
-            pm_datum = measure_pm()
-
             append_data_to_file(co2_log_file_path, co2_datum.get("co2", ""))
-            append_data_to_file(pm_log_file_path, ",".join([str(pm_datum["pm2.5"]), str(pm_datum["pm10"])]))
+            logger.debug("CO2 concentration: %f", co2_datum.get("co2", ""))
+            time.sleep(half_sleep_secs)
 
-            time.sleep(args["ping_interval"])
+            pm_datum = measure_pm()
+            append_data_to_file(pm_log_file_path, ",".join([str(pm_datum["pm2.5"]), str(pm_datum["pm10"])]))
+            logger.debug("PM2.5 concentration: %f\nPM10 concentration: %f", pm_datum.get("pm2.5", ""), pm_datum.get("pm10", ""))
+            time.sleep(half_sleep_secs)
+
         else:
             time.sleep(60)
