@@ -1,6 +1,7 @@
 import pprint
 import time
 from datetime import datetime
+from datetime import timedelta
 
 from sds011 import SDS011
 from typing import Dict
@@ -28,32 +29,39 @@ def parse_args() -> Dict:
         description="Log CO2 concentration at given interval for given time period.",
     )
     parser.add_argument(
-        "-p",
-        "--ping_interval",
-        type=int,
-        help="Number of seconds between sensor reads.",
-        default=30,
-    )
-    parser.add_argument(
-        "-t0",
-        "--start_datetime",
-        type=lambda date_str: datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f"),
-        help="Date in YYYY-MM-DDTHH:MM:SS.ffffff format. Defaults to current time.",
-        default=datetime.now(),
-    )
-    parser.add_argument(
-        "-t1",
-        "--end_datetime",
-        type=lambda date_str: datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f"),
-        help="Date in YYYY-MM-DDTHH:MM:SS.ffffff format. Defaults to one hour from current time.",
-        default=datetime.now() + timedelta(hours=1),
-    )
-    parser.add_argument(
         "-l",
         "--log_dir_path",
         type=str,
-        help="Full path to output dir for logfiles.",
-        default=f"/tmp/aqs/",
+        help="[Required] Full path to output dir for logfiles.",
+        required=True
+    )
+    parser.add_argument(
+        "-p",
+        "--ping_interval",
+        type=int,
+        help="[Optional] Number of seconds between sensor reads.",
+        default=30,
+    )
+    parser.add_argument(
+        "-n",
+        "--notes",
+        type=str,
+        help="[Optional] Notes for future refernce, printed in each logfile's header.",
+        default="",
+    )
+    parser.add_argument(
+        "-sd",
+        "--start_delay_hours",
+        type=float,
+        help="[Optional] Delay in fractional hours before starting to log. Defaults to 0.",
+        default=0.0,
+    )
+    parser.add_argument(
+        "-lg",
+        "--logging_time_hours",
+        type=float,
+        help="[Optional] Time in fractional hours to continue logging for. Defaults to 1.0",
+        default=1.0,
     )
 
     args = parser.parse_args()
@@ -74,16 +82,27 @@ def append_data_to_file(file_name: str, datum: str) -> None:
         f.write("\n")
 
         
+def add_note_header(file_path: str, notes: str) -> None:
+    """Create log file header, including any user-specified notes."""
+     with open(file_name, "w") as f:
+         f.write(notes + "\n")
+
+         
 if __name__ == "__main__":
     args = parse_args()
-    pretty_args = pprint.pformat(args)
 
     formatted_time = datetime.strftime(datetime.now(), '%Y%m%dT%H%M%S')
     co2_log_file_path = op.join(args["log_dir_path"], f"co2-log-{formatted_time}.txt")
     pm_log_file_path = op.join(args["log_dir_path"], f"pm-log-{formatted_time}.txt")
     half_sleep_secs = int(args["ping_interval"]/2)
 
-    
+    add_note_header(co2_log_file_path, args["notes"])
+    add_note_header(pm_log_file_path, args["notes"])
+
+    args["start_datetime"] = datetime.now() + timedelta(hours=args["start_delay_hours"])
+    args["end_datetime"] = start_datetime + timedelta(hours=args["logging_time_hours"])
+
+    pretty_args = pprint.pformat(args)
     logger.info("Running with the following configuration:\n%s", pretty_args)
     while datetime.now() < args["end_datetime"]:
         if args["start_datetime"] <= datetime.now():
@@ -94,7 +113,7 @@ if __name__ == "__main__":
 
             pm_datum = measure_pm()
             append_data_to_file(pm_log_file_path, ",".join([str(pm_datum["pm2.5"]), str(pm_datum["pm10"])]))
-            logger.debug("PM2.5 concentration: %f\nPM10 concentration: %f", pm_datum.get("pm2.5", ""), pm_datum.get("pm10", ""))
+            logger.debug("PM2.5 concentration: %f, PM10 concentration: %f", pm_datum.get("pm2.5", ""), pm_datum.get("pm10", ""))
             time.sleep(half_sleep_secs)
 
         else:
