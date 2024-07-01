@@ -15,6 +15,8 @@ from typing import Dict
 import os.path as op
 import mh_z19 as m19
 
+FILL_VALUE = -999.0
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -70,11 +72,23 @@ def parse_args() -> Dict:
     return args
 
 
+def mesure_co2_temp() -> Dict:
+    raw_reading = m19.read()
+    co2_temp = {"co2": raw_reading.get("co2", FILL_VALUE)), "temp_c": raw_reading["temp"]}
+    return co2_temp
+
+
 def measure_pm() -> Dict:
     sensor = SDS011("/dev/ttyUSB0", use_query_mode=True)
     reading = sensor.query()
-    return {"pm2.5": reading[0], "pm10": reading[1]}
-
+    pm = dict()
+    for pm_val in ("pm2.5", 0), ("pm10", 1)):
+        try:
+            pm[pm_val[0]] = reading[pm_val[1]]
+        except IndexError:
+            pm[pm_val[0]] = FILL_VALUE
+            
+    return pm
 
 def append_data_to_file(file_name: str, datum: str) -> None:
     with open(file_name, "a") as f:
@@ -84,8 +98,9 @@ def append_data_to_file(file_name: str, datum: str) -> None:
         
 def add_note_header(file_path: str, notes: str) -> None:
     """Create log file header, including any user-specified notes."""
-     with open(file_name, "w") as f:
-         f.write(notes + "\n")
+    with open(file_path, "w") as f:
+        f.write(notes)
+        f.write("\n\n")
 
          
 if __name__ == "__main__":
@@ -100,20 +115,20 @@ if __name__ == "__main__":
     add_note_header(pm_log_file_path, args["notes"])
 
     args["start_datetime"] = datetime.now() + timedelta(hours=args["start_delay_hours"])
-    args["end_datetime"] = start_datetime + timedelta(hours=args["logging_time_hours"])
+    args["end_datetime"] = args["start_datetime"] + timedelta(hours=args["logging_time_hours"])
 
     pretty_args = pprint.pformat(args)
     logger.info("Running with the following configuration:\n%s", pretty_args)
     while datetime.now() < args["end_datetime"]:
         if args["start_datetime"] <= datetime.now():
-            co2_datum = m19.read()
-            append_data_to_file(co2_log_file_path, co2_datum.get("co2", ""))
-            logger.debug("CO2 concentration: %f", co2_datum.get("co2", ""))
+            co2_datum = measure_co2_temp()
+            logger.debug("CO2 concentration: %f", co2_datum["co2"])
+            append_data_to_file(co2_log_file_path, ",".join([str(co2_datum["co2"]), str(co2_datum["temp_c"])])
             time.sleep(half_sleep_secs)
 
             pm_datum = measure_pm()
             append_data_to_file(pm_log_file_path, ",".join([str(pm_datum["pm2.5"]), str(pm_datum["pm10"])]))
-            logger.debug("PM2.5 concentration: %f, PM10 concentration: %f", pm_datum.get("pm2.5", ""), pm_datum.get("pm10", ""))
+            logger.debug("PM2.5 concentration: %f, PM10 concentration: %f", pm_datum["pm2.5"], pm_datum["pm10"])
             time.sleep(half_sleep_secs)
 
         else:
