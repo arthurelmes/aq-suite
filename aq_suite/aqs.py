@@ -11,7 +11,7 @@ import logging
 import pprint
 import time
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, List
 import os.path as op
 import mh_z19 as m19
 
@@ -72,9 +72,9 @@ def parse_args() -> Dict:
     return args
 
 
-def mesure_co2_temp() -> Dict:
-    raw_reading = m19.read()
-    co2_temp = {"co2": raw_reading.get("co2", FILL_VALUE)), "temp_c": raw_reading["temp"]}
+def measure_co2_temp() -> Dict:
+    raw_reading = m19.read_all()
+    co2_temp = {"co2": raw_reading.get("co2", FILL_VALUE), "temp_c": raw_reading.get("temperature", FILL_VALUE)}
     return co2_temp
 
 
@@ -82,7 +82,7 @@ def measure_pm() -> Dict:
     sensor = SDS011("/dev/ttyUSB0", use_query_mode=True)
     reading = sensor.query()
     pm = dict()
-    for pm_val in ("pm2.5", 0), ("pm10", 1)):
+    for pm_val in (("pm2.5", 0), ("pm10", 1)):
         try:
             pm[pm_val[0]] = reading[pm_val[1]]
         except IndexError:
@@ -90,45 +90,51 @@ def measure_pm() -> Dict:
             
     return pm
 
-def append_data_to_file(file_name: str, datum: str) -> None:
+def append_data_to_file(file_name: str, datum: str, usecols: List) -> None:
+    write_cols = [datum["measurement_time"].strftime("%Y-%m-%dT%H:%M:%S")]
+    write_cols += [str(datum[i]) for i in usecols if i != "measurement_time"]
+    write_cols = ",".join(write_cols)
     with open(file_name, "a") as f:
-        f.write(",".join([datetime.now().strftime("%Y-%m-%dT%H:%M:%S"), str(datum)]))
+        f.write(write_cols)
         f.write("\n")
 
         
-def add_note_header(file_path: str, notes: str) -> None:
+def add_log_file_header(file_path: str, notes: str, cols: List, config: Dict) -> None:
     """Create log file header, including any user-specified notes."""
     with open(file_path, "w") as f:
+        f.write(config)
+        f.write("\n")
         f.write(notes)
         f.write("\n\n")
+        f.write(",".join(cols))
 
          
 if __name__ == "__main__":
     args = parse_args()
 
     formatted_time = datetime.strftime(datetime.now(), '%Y%m%dT%H%M%S')
-    co2_log_file_path = op.join(args["log_dir_path"], f"co2-log-{formatted_time}.txt")
-    pm_log_file_path = op.join(args["log_dir_path"], f"pm-log-{formatted_time}.txt")
+    log_file_path = op.join(args["log_dir_path"], f"co2-pm-log-{formatted_time}.txt")
     half_sleep_secs = int(args["ping_interval"]/2)
-
-    add_note_header(co2_log_file_path, args["notes"])
-    add_note_header(pm_log_file_path, args["notes"])
-
+    data_cols = ["measurement_time", "co2", "temp_c", "pm2.5", "pm10"]
+                    
     args["start_datetime"] = datetime.now() + timedelta(hours=args["start_delay_hours"])
     args["end_datetime"] = args["start_datetime"] + timedelta(hours=args["logging_time_hours"])
 
     pretty_args = pprint.pformat(args)
     logger.info("Running with the following configuration:\n%s", pretty_args)
+    add_log_file_header(log_file_path, args["notes"], cols=data_cols, config=pretty_args)
+
     while datetime.now() < args["end_datetime"]:
         if args["start_datetime"] <= datetime.now():
-            co2_datum = measure_co2_temp()
-            logger.debug("CO2 concentration: %f", co2_datum["co2"])
-            append_data_to_file(co2_log_file_path, ",".join([str(co2_datum["co2"]), str(co2_datum["temp_c"])])
+            co2_pm_datum = measure_co2_temp()
+            logger.debug("\nCO2 concentration (PPM): %f\nTemperature (C) %f", co2_pm_datum["co2"], co2_pm_datum["temp_c"])
             time.sleep(half_sleep_secs)
 
-            pm_datum = measure_pm()
-            append_data_to_file(pm_log_file_path, ",".join([str(pm_datum["pm2.5"]), str(pm_datum["pm10"])]))
-            logger.debug("PM2.5 concentration: %f, PM10 concentration: %f", pm_datum["pm2.5"], pm_datum["pm10"])
+            co2_pm_datum.update(measure_pm())
+            co2_pm_datum["measurement_time"] = datetime.now()
+            logger.debug("\nPM2.5 concentration: %f\n, PM10 concentration: %f", co2_pm_datum["pm2.5"], co2_pm_datum["pm10"])
+
+            append_data_to_file(log_file_path, co2_pm_datum, data_cols)
             time.sleep(half_sleep_secs)
 
         else:
