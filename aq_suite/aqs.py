@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
             co2_pm_datum.update(measure_pm())
             co2_pm_datum["measurement_time"] = datetime.now()
-            logger.debug("\nPM2.5 concentration: %f\n, PM10 concentration: %f", co2_pm_datum["pm2.5"], co2_pm_datum["pm10"])
+            logger.debug("\nPM2.5 concentration: %f\nPM10 concentration: %f\n", co2_pm_datum["pm2.5"], co2_pm_datum["pm10"])
 
             append_data_to_file(log_file_path, co2_pm_datum, data_cols)
             time.sleep(half_sleep_secs)
