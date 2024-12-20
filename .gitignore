@@ -109,3 +109,5 @@ venv.bak/
 
 # Poetry
 poetry.lock
+
+.python-version~
