@@ -87,8 +87,9 @@ def measure_pm() -> Dict:
             pm[pm_val[0]] = reading[pm_val[1]]
         except IndexError:
             pm[pm_val[0]] = FILL_VALUE
-            
+
     return pm
+
 
 def append_data_to_file(file_name: str, datum: str, usecols: List) -> None:
     write_cols = [datum["measurement_time"].strftime("%Y-%m-%dT%H:%M:%S")]
@@ -98,31 +99,30 @@ def append_data_to_file(file_name: str, datum: str, usecols: List) -> None:
         f.write(write_cols)
         f.write("\n")
 
-        
-def add_log_file_header(file_path: str, notes: str, cols: List, config: Dict) -> None:
+
+def add_log_file_cols(file_path: str, cols: List) -> None:
     """Create log file header, including any user-specified notes."""
     with open(file_path, "w") as f:
-        f.write(config)
-        f.write("\n")
-        f.write(notes)
-        f.write("\n\n")
         f.write(",".join(cols))
+        f.write("\n")
 
-         
+
 if __name__ == "__main__":
     args = parse_args()
 
     formatted_time = datetime.strftime(datetime.now(), '%Y%m%dT%H%M%S')
-    log_file_path = op.join(args["log_dir_path"], f"co2-pm-log-{formatted_time}.txt")
+
+    note_str = args.get("notes", "").replace(" ", "-")
+    log_file_path = op.join(args["log_dir_path"], note_str, f"co2-pm-log-{formatted_time}.txt")
     half_sleep_secs = int(args["ping_interval"]/2)
     data_cols = ["measurement_time", "co2", "temp_c", "pm2.5", "pm10"]
-                    
+
     args["start_datetime"] = datetime.now() + timedelta(hours=args["start_delay_hours"])
     args["end_datetime"] = args["start_datetime"] + timedelta(hours=args["logging_time_hours"])
 
     pretty_args = pprint.pformat(args)
     logger.info("Running with the following configuration:\n%s", pretty_args)
-    add_log_file_header(log_file_path, args["notes"], cols=data_cols, config=pretty_args)
+    add_log_file_cols(log_file_path, cols=data_cols)
 
     while datetime.now() < args["end_datetime"]:
         if args["start_datetime"] <= datetime.now():
