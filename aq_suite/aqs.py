@@ -140,10 +140,10 @@ if __name__ == "__main__":
                         datetime.strftime(
                             co2_pm_datum["measurement_time"], "%Y%m%dT%H:%M:%S"
                         ),
-                        co2_pm_datum["co2"],
-                        co2_pm_datum["temp_c"],
-                        co2_pm_datum["pm2.5"],
-                        co2_pm_datum["pm10"],
+                        str(co2_pm_datum["co2"]),
+                        str(co2_pm_datum["temp_c"]),
+                        str(co2_pm_datum["pm2.5"]),
+                        str(co2_pm_datum["pm10"]),
                     ]
                 )
             )
