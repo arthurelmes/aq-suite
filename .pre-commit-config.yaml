@@ -6,11 +6,15 @@ repos:
     hooks:
     - id: seed-isort-config
 -   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v4.3.21
+    rev: v5.10.1
     hooks:
     - id: isort
--   repo: https://github.com/ambv/black
-    rev: 24.4.2
+-   repo: https://github.com/psf/black
+    rev: 24.10.0
     hooks:
     - id: black
-      language_version: python3.10.14
+      name: black
+      entry: black
+      language: python
+      types: [python]
+      args: [--line-length=88]
