@@ -137,7 +137,9 @@ if __name__ == "__main__":
             logger.info(
                 "\t".join(
                     [
-                        co2_pm_datum["measurement_time"],
+                        datetime.strftime(
+                            co2_pm_datum["measurement_time"], "%Y%m%dT%H:%M:%S"
+                        ),
                         co2_pm_datum["co2"],
                         co2_pm_datum["temp_c"],
                         co2_pm_datum["pm2.5"],
