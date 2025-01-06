@@ -109,3 +109,10 @@ venv.bak/
 
 # Poetry
 poetry.lock
+
+<<<<<<< Updated upstream
+.python-version~
+=======
+# temp/backup files
+*~
+>>>>>>> Stashed changes
