@@ -3,12 +3,11 @@ import matplotlib as mpl
 import pandas as pd
 import os.path as op
 from matplotlib.dates import DateFormatter, AutoDateLocator
+import sys
 
-TEMP_INPUT = "/Users/arthurelmes/data/aq-suite/co2-pm-log-20250105T153240.txt"
 
-
-def main():
-    data = pd.read_csv(TEMP_INPUT, parse_dates=["measurement_time"])
+def main(log_file_path: str) -> None:
+    data = pd.read_csv(log_file_path, parse_dates=["measurement_time"])
 
     # Change default font size for tick labels
     mpl.rcParams['xtick.labelsize'] = 6  # Reduce font size for x-axis ticks
@@ -44,4 +43,5 @@ def main():
     plt.savefig(out_plot_path)
 
 if __name__ == "__main__":
-    main()
+    log_file_path = sys.argv[1]
+    main(log_file_path)
